@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both supported Python versions on Linux; one on macOS and Windows.
+        # The Windows leg is not optional — filtergraph path escaping and
+        # keyring behaviour both differ there, and both have already caused bugs.
+        include:
+          - { os: ubuntu-latest, python: '3.11' }
+          - { os: ubuntu-latest, python: '3.12' }
+          - { os: macos-latest, python: '3.12' }
+          - { os: windows-latest, python: '3.12' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg-full -y --no-progress
+
+      - name: Verify ffmpeg has libass
+        shell: bash
+        run: |
+          ffmpeg -hide_banner -version | grep -q libass \
+            || { echo "::error::This ffmpeg build lacks libass; captions cannot be burned in."; exit 1; }
+
+      - name: Create the environment
+        run: uv venv --python ${{ matrix.python }}
+
+      - name: Install
+        run: uv pip install -e ".[dev]"
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type check
+        run: uv run mypy backend/clipforge
+        continue-on-error: true
+
+      - name: Unit tests
+        run: uv run pytest -m "not slow and not golden" -q
+
+      - name: Render tests
+        # The real ffmpeg render path — the one that catches escaping, font, and
+        # encoder problems that unit tests structurally cannot.
+        run: uv run pytest -m "slow and not golden" -q
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Type check and build
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: base
+          push: false
+          load: true
+          tags: clipforge:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: |
+          docker run -d --name clipforge -p 8000:8000 clipforge:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/api/health; then
+              echo "\nHealthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Container never became healthy."
+          docker logs clipforge
+          exit 1

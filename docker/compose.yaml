@@ -1,0 +1,49 @@
+name: clipforge
+
+services:
+  clipforge:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: base
+    image: clipforge:latest
+    ports:
+      # Bound to loopback: ClipForge has no authentication, so it must not be
+      # reachable from the network by default. Change to "8000:8000" only on a
+      # network you trust.
+      - '127.0.0.1:8000:8000'
+    volumes:
+      - clipforge-data:/data
+      # Drop source files here to ingest them without uploading through the UI.
+      - ./media:/media:ro
+    environment:
+      CLIPFORGE_HOME: /data
+    restart: unless-stopped
+
+  # docker compose --profile gpu up
+  clipforge-gpu:
+    profiles: ['gpu']
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: gpu
+    image: clipforge:gpu
+    ports:
+      - '127.0.0.1:8000:8000'
+    volumes:
+      - clipforge-data:/data
+      - ./media:/media:ro
+    environment:
+      CLIPFORGE_HOME: /data
+      NVIDIA_VISIBLE_DEVICES: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  clipforge-data:
