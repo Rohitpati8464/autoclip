@@ -62,7 +62,14 @@ class FFmpegInfo:
     has_libass: bool = False
     has_fontconfig: bool = False
     has_libx264: bool = False
+    #: h264_nvenc is listed in this build's encoders.
     has_nvenc: bool = False
+    #: h264_nvenc actually encodes on this machine. Being listed is not enough:
+    #: the build's required NVENC API version can exceed what the installed
+    #: driver provides, and the failure only appears at encode time.
+    nvenc_works: bool = False
+    #: Why nvenc is unusable, when it is listed but doesn't work.
+    nvenc_error: str = ""
     filters: set[str] = field(default_factory=set)
     ffprobe_found: bool = False
 
@@ -170,6 +177,8 @@ def probe_ffmpeg() -> FFmpegInfo:
 
     encoders = _run([exe, "-hide_banner", "-encoders"])
     info.has_nvenc = "h264_nvenc" in encoders
+    if info.has_nvenc:
+        info.nvenc_works, info.nvenc_error = _probe_nvenc(exe)
 
     filters = _run([exe, "-hide_banner", "-filters"])
     # Filter listing rows look like: " ... crop   V->V   Crop the input video."
@@ -180,6 +189,40 @@ def probe_ffmpeg() -> FFmpegInfo:
             info.filters.add(parts[1])
 
     return info
+
+
+def _probe_nvenc(exe: str) -> tuple[bool, str]:
+    """Try a one-frame NVENC encode to null. Returns (works, error summary).
+
+    The cheapest honest test. Checking the encoder list only tells us the build
+    has the code, not that the driver supports the API version it was built
+    against — that mismatch is common and only surfaces mid-render.
+    """
+    output = _run(
+        [
+            exe,
+            "-hide_banner",
+            "-nostdin",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=256x256:d=0.1",
+            "-c:v",
+            "h264_nvenc",
+            "-frames:v",
+            "1",
+            "-f",
+            "null",
+            "-",
+        ]
+    )
+    lowered = output.lower()
+    if "error" in lowered or "cannot load" in lowered or "not support" in lowered:
+        for line in output.splitlines():
+            if "nvenc" in line.lower() and ("driver" in line.lower() or "requir" in line.lower()):
+                return False, line.strip()
+        return False, "NVENC initialisation failed."
+    return True, ""
 
 
 def probe_gpu() -> GPUInfo:
