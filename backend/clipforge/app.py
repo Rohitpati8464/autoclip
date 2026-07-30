@@ -120,7 +120,10 @@ def _mount_frontend(app: FastAPI) -> None:
         name="assets",
     )
 
-    @app.get("/{full_path:path}", include_in_schema=False)
+    # response_model=None because the return type is a union of Response
+    # subclasses, which FastAPI would otherwise try to turn into a Pydantic
+    # response model and reject.
+    @app.get("/{full_path:path}", include_in_schema=False, response_model=None)
     async def spa(request: Request, full_path: str) -> FileResponse | JSONResponse:
         """Serve the SPA, letting the client router own unknown paths.
 

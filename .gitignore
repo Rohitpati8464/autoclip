@@ -21,6 +21,10 @@ frontend/dist/
 frontend/.vite/
 *.local
 
+# Built frontend, emitted into the Python package by `npm run build`.
+# Regenerated from source; a release build produces it during packaging.
+backend/clipforge/static/
+
 # ClipForge runtime artifacts
 .clipforge/
 *.db
