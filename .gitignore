@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# uv
+uv.lock
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# ClipForge runtime artifacts
+.clipforge/
+*.db
+*.sqlite3
+
+# Test media (large binaries stay out of git; see tests/fixtures/README.md)
+tests/fixtures/media/
+tests/fixtures/**/*.mp4
+tests/fixtures/**/*.mkv
+tests/fixtures/**/*.webm
+tests/fixtures/**/*.wav
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
