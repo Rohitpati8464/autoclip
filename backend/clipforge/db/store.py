@@ -123,17 +123,34 @@ def list_jobs(limit: int = 50, status: JobStatus | None = None) -> list[Job]:
     return [Job.from_row(r) for r in rows]
 
 
+class _Unset:
+    """Sentinel distinguishing "leave this alone" from "set this to NULL".
+
+    Without it, nullable columns can only ever be written, never cleared — a
+    retried job would keep displaying the error message from its failed run.
+    """
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "UNSET"
+
+
+UNSET = _Unset()
+
+
 def update_job(
     job_id: str,
     *,
     status: JobStatus | None = None,
     current_stage: str | None = None,
     progress: float | None = None,
-    error: str | None = None,
-    started_at: str | None = None,
-    finished_at: str | None = None,
+    error: str | None | _Unset = UNSET,
+    started_at: str | None | _Unset = UNSET,
+    finished_at: str | None | _Unset = UNSET,
 ) -> None:
     """Patch the supplied fields. Omitted fields are left untouched.
+
+    Nullable fields take :data:`UNSET` as their default, so passing ``None``
+    explicitly clears them.
 
     ``updated_at`` is always refreshed so the UI can detect staleness.
     """
@@ -142,11 +159,16 @@ def update_job(
         ("status", status),
         ("current_stage", current_stage),
         ("progress", progress),
+    ):
+        if value is not None:
+            fields[name] = value
+
+    for name, value in (
         ("error", error),
         ("started_at", started_at),
         ("finished_at", finished_at),
     ):
-        if value is not None:
+        if not isinstance(value, _Unset):
             fields[name] = value
 
     assignments = ", ".join(f"{name} = ?" for name in fields)

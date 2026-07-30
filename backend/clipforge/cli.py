@@ -587,6 +587,55 @@ def update_ytdlp() -> None:
 
 
 @app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", "--host", help="Interface to bind."),
+    port: int = typer.Option(8000, "--port", "-p", help="Port to listen on."),
+    reload: bool = typer.Option(False, "--reload", help="Auto-reload on code changes."),
+    open_browser: bool = typer.Option(
+        True, "--open/--no-open", help="Open a browser once the server is up."
+    ),
+) -> None:
+    """Start the ClipForge web app."""
+    import threading
+    import webbrowser
+
+    import uvicorn
+
+    from . import db
+    from .app import static_dir
+
+    db.init()
+
+    if static_dir() is None:
+        console.print(
+            "[yellow]The frontend has not been built.[/yellow] The API will still work "
+            "at /docs. To build the UI:\n"
+            "  [cyan]cd frontend && npm install && npm run build[/cyan]\n"
+        )
+
+    url = f"http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{port}"
+    console.print(f"[green]ClipForge[/green] starting on [cyan]{url}[/cyan]")
+
+    if host == "0.0.0.0":  # noqa: S104
+        console.print(
+            "[yellow]Binding to 0.0.0.0 exposes ClipForge to your whole network.[/yellow] "
+            "There is no authentication — only do this on a network you trust."
+        )
+
+    if open_browser and not reload:
+        # Delayed so the browser doesn't race the server's first bind.
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+
+    uvicorn.run(
+        "clipforge.app:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+    )
+
+
+@app.command()
 def styles() -> None:
     """List the available caption styles."""
     from .pipeline.captions import PRESETS
