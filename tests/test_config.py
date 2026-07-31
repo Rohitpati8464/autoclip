@@ -125,11 +125,11 @@ class TestSecretsWithoutKeyring:
 
         assert config.load().insecure_secret_storage is False
 
-    def test_keyring_errors_degrade_to_the_fallback(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from tests.conftest import FakeKeyring
-
-        monkeypatch.setattr(config, "_keyring", lambda: FakeKeyring(failing=True))
-
+    def test_keyring_errors_degrade_to_the_fallback(self, failing_keyring) -> None:
+        # Uses a fixture rather than importing from conftest: `tests` is not an
+        # installed package, so `from tests.conftest import ...` resolves only
+        # when the repo root happens to be on sys.path. It did locally and did
+        # not in CI.
         secure = config.set_secret("gemini", "sk-gemini")
 
         assert secure is False

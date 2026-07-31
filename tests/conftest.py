@@ -71,3 +71,15 @@ def fake_keyring(monkeypatch: pytest.MonkeyPatch) -> FakeKeyring:
 def no_keyring(monkeypatch: pytest.MonkeyPatch) -> None:
     """Simulate a machine with no usable keyring backend."""
     monkeypatch.setattr(config, "_keyring", lambda: None)
+
+
+@pytest.fixture
+def failing_keyring(monkeypatch: pytest.MonkeyPatch) -> FakeKeyring:
+    """A keyring backend that is present but raises on every operation.
+
+    Distinct from `no_keyring`: this is the machine where a backend exists and
+    is broken, which must degrade to the file fallback rather than propagate.
+    """
+    kr = FakeKeyring(failing=True)
+    monkeypatch.setattr(config, "_keyring", lambda: kr)
+    return kr
