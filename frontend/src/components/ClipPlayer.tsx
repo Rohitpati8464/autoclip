@@ -49,6 +49,24 @@ export function ClipPlayer({
   const [time, setTime] = useState(startS)
   const [volume, setVolume] = useState(readStoredVolume)
   const [muted, setMuted] = useState(false)
+  const [nativeControls, setNativeControls] = useState(false)
+  const [audioCheck, setAudioCheck] = useState<AudioCheck | null>(null)
+  const [checking, setChecking] = useState(false)
+
+  const runAudioCheck = async () => {
+    const element = video.current
+    if (!element) return
+    setChecking(true)
+    setAudioCheck(null)
+    try {
+      setAudioCheck(await measureOutputLevel(element))
+    } catch (error) {
+      setAudioCheck({ ok: false, peakDb: null, detail: String(error) })
+    } finally {
+      setChecking(false)
+      setPlaying(!element.paused)
+    }
+  }
 
   // Kept in sync imperatively: volume and muted are element properties, not
   // attributes, so React won't apply them from JSX on later renders.
@@ -134,6 +152,7 @@ export function ClipPlayer({
           onTimeUpdate={onTimeUpdate}
           preload="auto"
           playsInline
+          controls={nativeControls}
         />
 
         <CaptionOverlay words={words} time={time} style={style} />
@@ -175,12 +194,117 @@ export function ClipPlayer({
       </div>
 
       {(muted || volume === 0) && (
-        <p className="mt-2 self-start text-xs text-sodium-500">
+        <p className="mt-2 text-xs text-sodium-500">
           Audio is muted — click the speaker to unmute.
+        </p>
+      )}
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <button onClick={runAudioCheck} disabled={checking} className="btn btn-quiet -ml-1">
+          {checking ? 'Listening…' : 'Test audio'}
+        </button>
+        <button
+          onClick={() => setNativeControls((current) => !current)}
+          className="btn btn-quiet"
+        >
+          {nativeControls ? 'Hide browser controls' : 'Browser controls'}
+        </button>
+      </div>
+
+      {audioCheck && (
+        <p
+          className={`mt-1 max-w-prose text-xs leading-relaxed ${
+            audioCheck.ok ? 'text-ink-400' : 'text-sodium-500'
+          }`}
+        >
+          {audioCheck.detail}
         </p>
       )}
     </div>
   )
+}
+
+interface AudioCheck {
+  ok: boolean
+  peakDb: number | null
+  detail: string
+}
+
+/**
+ * Measure the real signal level leaving the video element.
+ *
+ * "Is it muted?" is otherwise unanswerable from inside the page: a muted tab, a
+ * silenced app in the OS mixer, and audio routed to a disconnected output all
+ * look identical, and none of them are distinguishable from a bug in here.
+ *
+ * ``captureStream`` taps the element's output rather than rerouting it, so
+ * measuring cannot itself cause the silence being investigated. The analyser is
+ * deliberately never connected to the context destination — doing so would play
+ * the audio a second time.
+ */
+async function measureOutputLevel(element: HTMLVideoElement): Promise<AudioCheck> {
+  const capture =
+    (element as HTMLVideoElement & { captureStream?: () => MediaStream }).captureStream ??
+    (element as HTMLVideoElement & { mozCaptureStream?: () => MediaStream }).mozCaptureStream
+
+  if (!capture) {
+    return {
+      ok: false,
+      peakDb: null,
+      detail: "This browser can't measure audio output. Try the browser controls instead.",
+    }
+  }
+
+  const wasPaused = element.paused
+  if (wasPaused) await element.play()
+
+  const stream = capture.call(element)
+  const tracks = stream.getAudioTracks()
+  if (tracks.length === 0) {
+    if (wasPaused) element.pause()
+    return {
+      ok: false,
+      peakDb: null,
+      detail: 'This video exposes no audio track at all — that is a problem in AutoClip.',
+    }
+  }
+
+  const context = new AudioContext()
+  const analyser = context.createAnalyser()
+  analyser.fftSize = 2048
+  context.createMediaStreamSource(stream).connect(analyser)
+
+  const samples = new Float32Array(analyser.fftSize)
+  let peak = 0
+  for (let i = 0; i < 24; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    analyser.getFloatTimeDomainData(samples)
+    for (const sample of samples) peak = Math.max(peak, Math.abs(sample))
+  }
+
+  await context.close()
+  if (wasPaused) element.pause()
+
+  if (peak <= 0.005) {
+    return {
+      ok: false,
+      peakDb: null,
+      detail:
+        'No signal is leaving the player. Either the clip really is silent, or the ' +
+        'player is muted — check the speaker icon above.',
+    }
+  }
+
+  const peakDb = 20 * Math.log10(peak)
+  return {
+    ok: true,
+    peakDb,
+    detail:
+      `Audio is leaving the player at ${peakDb.toFixed(1)} dBFS — the app is producing sound. ` +
+      'If you still hear nothing, it is between the browser and your speakers: right-click ' +
+      'this tab and check for "Unmute site", then check Windows Volume Mixer and your ' +
+      'output device.',
+  }
 }
 
 /**
