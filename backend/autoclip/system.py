@@ -285,6 +285,12 @@ def probe_gpu() -> GPUInfo:
 
     # nvidia-smi seeing a card doesn't mean CTranslate2 can use it — the CUDA
     # runtime and cuDNN also have to be loadable. This is the check that counts.
+    # Registering the pip-installed library directories first is what makes them
+    # findable; without it the probe passes and inference later fails.
+    from .cuda import ensure_cuda_libraries
+
+    ensure_cuda_libraries()
+
     try:
         import ctranslate2
 

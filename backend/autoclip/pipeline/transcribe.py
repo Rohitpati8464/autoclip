@@ -98,6 +98,12 @@ def transcribe(
     """
     settings = settings or WhisperSettings()
 
+    # Must happen before faster-whisper pulls in CTranslate2, which resolves its
+    # CUDA dependencies at import.
+    from ..cuda import ensure_cuda_libraries
+
+    ensure_cuda_libraries()
+
     try:
         from faster_whisper import WhisperModel
     except ImportError as exc:  # pragma: no cover - faster-whisper is a core dep

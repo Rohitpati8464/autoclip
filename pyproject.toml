@@ -112,6 +112,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 markers = [
   "slow: tests that run the real pipeline (deselect with '-m \"not slow\"')",
   "golden: reframe acceptance-bar tests against the golden video set",
+  "e2e: full-pipeline run against real media (needs AUTOCLIP_E2E_MEDIA)",
 ]
 
 [tool.mypy]

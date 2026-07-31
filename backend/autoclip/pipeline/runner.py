@@ -127,8 +127,17 @@ class PipelineRunner:
         if self._is_cancelled():
             raise JobCancelled("Job cancelled.")
 
-    def _emit(self, stage: Stage, stage_progress: float, message: str = "") -> None:
-        overall = min(1.0, self._completed_weight + STAGE_WEIGHTS[stage] * stage_progress)
+    def _emit(
+        self,
+        stage: Stage,
+        stage_progress: float,
+        message: str = "",
+        *,
+        overall: float | None = None,
+    ) -> None:
+        if overall is None:
+            overall = self._completed_weight + STAGE_WEIGHTS[stage] * stage_progress
+        overall = min(1.0, overall)
         store.update_job(self.job.id, current_stage=stage.value, progress=round(overall, 4))
         if self.on_progress:
             self.on_progress(
@@ -141,8 +150,15 @@ class PipelineRunner:
             )
 
     def _finish_stage(self, stage: Stage) -> None:
+        """Mark a stage complete.
+
+        ``overall`` is passed explicitly rather than derived. Deriving it after
+        incrementing the accumulated weight counts the stage twice, so the bar
+        jumped past the true total and then snapped backwards when the next
+        stage reported 0 — visibly, at every stage boundary.
+        """
         self._completed_weight += STAGE_WEIGHTS[stage]
-        self._emit(stage, 1.0)
+        self._emit(stage, 1.0, overall=self._completed_weight)
 
     def _stage_progress(self, stage: Stage) -> Callable[[float], None]:
         def report(fraction: float) -> None:
