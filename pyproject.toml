@@ -41,8 +41,13 @@ dependencies = [
   "faster-whisper>=1.1",
   # Reframe
   "mediapipe>=0.10.14",
-  "scenedetect[opencv]>=0.6.4",
-  "numpy>=1.26,<2.0",
+  # No [opencv] extra: scenedetect 0.7 dropped it and now depends on
+  # opencv-python directly. cv2, which reframe/faces.py imports, arrives through
+  # this and through mediapipe.
+  "scenedetect>=0.6.4",
+  # No upper bound: nothing here requires numpy 1.x, and capping it below 2.0
+  # made the diarization extra unsatisfiable, since WhisperX requires >=2.1.
+  "numpy>=1.26",
   # Captions
   "pysubs2>=1.7",
   # Providers
