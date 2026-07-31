@@ -1,0 +1,73 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The single most useful thing you can include is the
+        output of `autoclip doctor` — most problems in this space come down to an
+        ffmpeg build without libass, a GPU driver mismatch, or Python 3.13, and
+        `doctor` identifies all three immediately.
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `autoclip doctor`
+      description: Paste the whole thing. It contains no secrets — keys are never printed.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Ingest a 10-minute talking-head video
+        2. Run with the Anthropic provider
+        3. Fails at the reframe stage with ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Which stage
+      options:
+        - Not sure
+        - Ingest (YouTube or upload)
+        - Prepare (audio, thumbnails)
+        - Transcribe
+        - Highlights (LLM)
+        - Reframe
+        - Captions
+        - Export
+        - Web UI
+        - Install or setup
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source video
+      description: >
+        Resolution, length, and roughly what's in it — one speaker, two people,
+        screen share. Reframe bugs in particular depend heavily on the footage.
+      placeholder: 1920x1080, 22 minutes, two people at a table
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output
+      description: The full error and traceback, if there is one.
+      render: shell

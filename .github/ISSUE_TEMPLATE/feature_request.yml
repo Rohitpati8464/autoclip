@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest something AutoClip should do
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing: the [non-goals](https://github.com/artbyjazi/autoclip#non-goals)
+        are deliberate. Direct posting to platforms and a full timeline editor are
+        both out of scope on purpose, not oversights.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: >
+        The problem, not the solution. "I can't tell which clips I've already
+        posted" is more useful than "add a checkbox", because it leaves room for
+        a better answer than the one you had in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: Optional — how you'd solve it, if you have a view.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today instead
+      description: The current workaround, and why it's not good enough.

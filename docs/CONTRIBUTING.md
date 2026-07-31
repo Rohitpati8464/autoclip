@@ -8,7 +8,7 @@ You need **Python 3.11 or 3.12** (not 3.13 — MediaPipe has no wheels for it),
 **Node 20+**, and **ffmpeg built with libass**.
 
 ```bash
-git clone https://github.com/ghzijad/autoclip
+git clone https://github.com/artbyjazi/autoclip
 cd autoclip
 uv venv --python 3.11
 uv pip install -e ".[dev]"

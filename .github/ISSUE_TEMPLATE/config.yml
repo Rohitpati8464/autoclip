@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setup problem
+    url: https://github.com/artbyjazi/autoclip#troubleshooting
+    about: Run `autoclip doctor` first — it diagnoses most install issues directly.
+  - name: Security vulnerability
+    url: https://github.com/artbyjazi/autoclip/security/advisories/new
+    about: Please report privately rather than in a public issue.
