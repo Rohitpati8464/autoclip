@@ -25,12 +25,61 @@ class TranscriptionError(RuntimeError):
 def resolve_compute(settings: WhisperSettings, gpu: GPUInfo | None = None) -> tuple[str, str]:
     """Return the ``(device, compute_type)`` to run Whisper with.
 
-    An explicit ``settings.compute_type`` always wins — users debugging a
-    numerical problem need to be able to force it.
+    An explicit ``settings.compute_type`` wins, but only if the device actually
+    supports it. An override the backend will reject fails at model load with a
+    message that points at cuDNN rather than at the setting, so an unsupported
+    override is warned about and ignored rather than honoured into a crash.
     """
     gpu = gpu if gpu is not None else report().gpu
-    compute_type = settings.compute_type or gpu.compute_type
-    return gpu.device, compute_type
+    automatic = gpu.compute_type
+
+    override = settings.compute_type
+    if not override:
+        return gpu.device, automatic
+
+    supported = gpu.supported_compute_types
+    if supported and override not in supported:
+        log.warning(
+            "whisper.compute_type is set to %r, which %s does not support "
+            "(supported: %s). Using %r instead.",
+            override,
+            gpu.device,
+            ", ".join(sorted(supported)),
+            automatic,
+        )
+        return gpu.device, automatic
+
+    return gpu.device, override
+
+
+def _model_load_error(exc: Exception, device: str, compute_type: str) -> TranscriptionError:
+    """Turn a Whisper model-load failure into something actionable.
+
+    The two causes look identical from the outside and need opposite fixes, so
+    they're distinguished rather than lumped under one guess.
+    """
+    message = str(exc)
+    lowered = message.lower()
+
+    if "compute type" in lowered or "not support" in lowered:
+        supported = report().gpu.supported_compute_types
+        options = ", ".join(sorted(supported)) if supported else "unknown"
+        return TranscriptionError(
+            f"This device does not support the '{compute_type}' compute type.\n"
+            f"Supported on {device}: {options}.\n\n"
+            "Clear whisper.compute_type in config.json to let ClipForge choose, "
+            "or set it to one of the supported values."
+        )
+
+    if device == "cuda" and ("cudnn" in lowered or "library" in lowered or "dll" in lowered):
+        return TranscriptionError(
+            f"Could not load Whisper on the GPU: {message}\n\n"
+            "This is a missing CUDA runtime library. Install it with "
+            "`uv pip install 'clipforge[gpu]'`, then retry — the job resumes "
+            "from this stage."
+        )
+
+    return TranscriptionError(f"Could not load the Whisper model: {message}")
 
 
 def transcribe(
@@ -67,13 +116,7 @@ def transcribe(
     try:
         model = WhisperModel(settings.model, device=device, compute_type=compute_type)
     except Exception as exc:
-        if device == "cuda":
-            raise TranscriptionError(
-                f"Could not load Whisper on the GPU ({exc}). This is usually a missing "
-                "cuDNN runtime — install it with `uv pip install 'clipforge[gpu]'`, or "
-                "force CPU by setting whisper.compute_type to 'int8' in config.json."
-            ) from exc
-        raise TranscriptionError(f"Could not load the Whisper model: {exc}") from exc
+        raise _model_load_error(exc, device, compute_type) from exc
 
     segments_iter, info = model.transcribe(
         str(audio),

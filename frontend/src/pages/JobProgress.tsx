@@ -116,12 +116,21 @@ export function JobProgress() {
 
       <ol className="mt-12 max-w-3xl">
         {STAGES.map((stage, index) => {
+          // A failed job stopped *at* current_stage, so that stage must read as
+          // failed rather than as still running — otherwise the checklist claims
+          // work is in progress while the banner says it died.
+          const failedHere =
+            (job.status === 'failed' || job.status === 'cancelled') && index === activeIndex
+
           const state =
             job.status === 'done' || (activeIndex >= 0 && index < activeIndex)
               ? 'done'
-              : index === activeIndex
-                ? 'active'
-                : 'pending'
+              : failedHere
+                ? 'stopped'
+                : index === activeIndex && job.status === 'running'
+                  ? 'active'
+                  : 'pending'
+
           const fraction =
             state === 'done' ? 1 : state === 'active' ? (progress?.stageProgress ?? 0) : 0
 
@@ -136,12 +145,14 @@ export function JobProgress() {
                   'numeric pt-0.5 text-xs',
                   state === 'done'
                     ? 'text-signal-good'
-                    : state === 'active'
-                      ? 'text-sodium-500'
-                      : 'text-ink-600',
+                    : state === 'stopped'
+                      ? 'text-signal-bad'
+                      : state === 'active'
+                        ? 'text-sodium-500'
+                        : 'text-ink-600',
                 ].join(' ')}
               >
-                {state === 'done' ? '✓' : String(index + 1).padStart(2, '0')}
+                {state === 'done' ? '✓' : state === 'stopped' ? '✕' : String(index + 1).padStart(2, '0')}
               </span>
 
               <div>
@@ -154,8 +165,16 @@ export function JobProgress() {
                   >
                     {stage.label}
                   </span>
-                  <span className="text-xs text-ink-500">
-                    {state === 'active' ? (progress?.message ?? stage.note) : stage.note}
+                  <span
+                    className={`text-xs ${state === 'stopped' ? 'text-signal-bad' : 'text-ink-500'}`}
+                  >
+                    {state === 'stopped'
+                      ? job.status === 'cancelled'
+                        ? 'cancelled here'
+                        : 'failed here'
+                      : state === 'active'
+                        ? (progress?.message ?? stage.note)
+                        : stage.note}
                   </span>
                 </div>
 

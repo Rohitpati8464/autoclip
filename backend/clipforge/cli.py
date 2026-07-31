@@ -148,15 +148,30 @@ def doctor() -> None:
     elif gpu.ctranslate2_cuda:
         accel_table.add_row("CUDA for Whisper", OK, "CTranslate2 sees the GPU")
 
+    if gpu.supported_compute_types:
+        accel_table.add_row(
+            "Supported compute types", OK, ", ".join(sorted(gpu.supported_compute_types))
+        )
+
     reason = ""
-    if gpu.accel == "cuda" and gpu.compute_type == "int8_float16":
-        reason = " (no fp16 tensor cores on this GPU — int8 is faster here)"
+    if gpu.accel == "cuda" and not gpu.compute_type.startswith("float16"):
+        reason = " (this GPU has no usable fp16 path)"
     accel_table.add_row("Whisper compute type", OK, f"{gpu.compute_type}{reason}")
 
-    if settings.whisper.compute_type:
+    override = settings.whisper.compute_type
+    if override:
+        usable = not gpu.supported_compute_types or override in gpu.supported_compute_types
         accel_table.add_row(
-            "  override in config", WARN, f"forced to {settings.whisper.compute_type}"
+            "  override in config",
+            _status(usable, warn_only=True),
+            f"forced to {override}" if usable else f"{override} is unsupported — ignored",
         )
+        if not usable:
+            remediation.append(
+                f"[cyan]whisper.compute_type[/cyan] is set to [cyan]{override}[/cyan], which "
+                "this device does not support, so it is being ignored. Clear it in "
+                f"{paths.config_path()} to silence this."
+            )
 
     console.print()
     console.print(accel_table)

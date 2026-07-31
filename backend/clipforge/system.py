@@ -12,6 +12,7 @@ to choose encoders and compute types.
 from __future__ import annotations
 
 import contextlib
+import logging
 import platform
 import re
 import shutil
@@ -21,18 +22,31 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Literal
 
+log = logging.getLogger(__name__)
+
 #: ffmpeg filters the pipeline cannot run without.
 REQUIRED_FILTERS = ("crop", "scale", "ass", "concat", "loudnorm")
 #: Filters we use when present but can work around.
 OPTIONAL_FILTERS = ("sendcmd", "zoompan", "silencedetect")
 
 Accel = Literal["cuda", "mps", "cpu"]
-ComputeType = Literal["float16", "int8_float16", "int8"]
+ComputeType = str
 
-#: Below this CUDA compute capability there are no fp16 tensor cores, so
-#: float16 inference is no faster than — and often slower than — int8_float16.
-#: 7.0 is Volta; consumer Pascal (GTX 10-series) is 6.1.
+#: Below this CUDA compute capability there is no usable fp16 path at all —
+#: not just no tensor cores. Pascal (GTX 10-series, 6.1) reports fp16 support in
+#: CUDA but runs it at 1/64 rate, and CTranslate2 declines to use it. 7.0 is
+#: Volta, the first architecture where fp16 is genuinely fast.
 FP16_MIN_COMPUTE_CAPABILITY = 7.0
+
+#: Compute types in descending order of preference, filtered against what
+#: CTranslate2 actually reports for the device. float32 is the universal
+#: fallback and is always supported.
+CUDA_FP16_PREFERENCE = ("float16", "int8_float16", "int8_float32", "int8", "float32")
+CUDA_NO_FP16_PREFERENCE = ("int8_float32", "int8", "float32")
+CPU_PREFERENCE = ("int8", "int8_float32", "float32")
+
+#: Used when CTranslate2 cannot be queried at all.
+_FALLBACK_COMPUTE_TYPES = frozenset({"float32", "int8"})
 
 _TIMEOUT_S = 20
 
@@ -101,19 +115,34 @@ class GPUInfo:
     #: seeing a card is not sufficient (missing cuDNN is the usual culprit).
     ctranslate2_cuda: bool = False
 
+    #: Compute types CTranslate2 reports for this device. Populated by the
+    #: probe; empty only when CTranslate2 could not be queried.
+    supported_compute_types: frozenset[str] = field(default_factory=frozenset)
+
     @property
     def compute_type(self) -> ComputeType:
-        """Pick the CTranslate2 compute type best suited to this device."""
+        """Pick the best compute type this device actually supports.
+
+        Asks CTranslate2 rather than inferring from compute capability. The two
+        disagree: a GTX 1060 reports fp16 capability to CUDA, but CTranslate2
+        supports only float32, int8, and int8_float32 on it — so anything fp16
+        fails at model load with an unhelpful message.
+        """
+        supported = self.supported_compute_types or _FALLBACK_COMPUTE_TYPES
+
         if self.accel == "cuda":
             cc = self.compute_capability
-            if cc is not None and cc < FP16_MIN_COMPUTE_CAPABILITY:
-                return "int8_float16"
-            return "float16"
-        if self.accel == "mps":
-            # CTranslate2 has no Metal backend; Apple Silicon runs the CPU path,
-            # which its NEON int8 kernels handle well.
-            return "int8"
-        return "int8"
+            no_fp16 = cc is not None and cc < FP16_MIN_COMPUTE_CAPABILITY
+            preference = CUDA_NO_FP16_PREFERENCE if no_fp16 else CUDA_FP16_PREFERENCE
+        else:
+            # CTranslate2 has no Metal backend, so Apple Silicon takes the CPU
+            # path too — its NEON int8 kernels handle it well.
+            preference = CPU_PREFERENCE
+
+        for candidate in preference:
+            if candidate in supported:
+                return candidate
+        return "float32"
 
     @property
     def device(self) -> str:
@@ -265,7 +294,24 @@ def probe_gpu() -> GPUInfo:
     except Exception:
         pass
 
+    info.supported_compute_types = query_compute_types(info.device)
     return info
+
+
+def query_compute_types(device: str) -> frozenset[str]:
+    """Ask CTranslate2 which compute types work on ``device``.
+
+    The authoritative answer, and frequently narrower than CUDA's own
+    capability reporting suggests. Returns an empty set if CTranslate2 cannot
+    be queried, which callers treat as "fall back to the safe defaults".
+    """
+    try:
+        import ctranslate2
+
+        return frozenset(ctranslate2.get_supported_compute_types(device))
+    except Exception as exc:
+        log.debug("Could not query CTranslate2 compute types for %s: %s", device, exc)
+        return frozenset()
 
 
 def probe_optional_deps() -> OptionalDeps:
