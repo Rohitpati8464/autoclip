@@ -2,6 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { formatTimecode, type CaptionStyle, type Word } from '../api'
 
+const VOLUME_KEY = 'autoclip.volume'
+
+function readStoredVolume(): number {
+  const stored = Number(window.localStorage.getItem(VOLUME_KEY))
+  return Number.isFinite(stored) && stored > 0 && stored <= 1 ? stored : 1
+}
+
 /**
  * 9:16 preview of one clip, with a CSS approximation of the burned captions.
  *
@@ -28,6 +35,18 @@ export function ClipPlayer({
   const video = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
   const [time, setTime] = useState(startS)
+  const [volume, setVolume] = useState(readStoredVolume)
+  const [muted, setMuted] = useState(false)
+
+  // Kept in sync imperatively: volume and muted are element properties, not
+  // attributes, so React won't apply them from JSX on later renders.
+  useEffect(() => {
+    const element = video.current
+    if (!element) return
+    element.volume = volume
+    element.muted = muted
+    window.localStorage.setItem(VOLUME_KEY, String(volume))
+  }, [volume, muted])
 
   // Re-seek whenever the clip or its trim changes, so the preview always starts
   // where the export will.
@@ -109,9 +128,21 @@ export function ClipPlayer({
       </div>
 
       <div className="mt-3 flex w-full items-center gap-4">
-        <button onClick={toggle} className="btn btn-quiet -ml-1 w-16 justify-start">
+        <button onClick={toggle} className="btn btn-quiet -ml-1 w-14 justify-start">
           {playing ? 'Pause' : 'Play'}
         </button>
+
+        <VolumeControl
+          volume={volume}
+          muted={muted}
+          onVolume={(next) => {
+            setVolume(next)
+            // Dragging the slider up is an unambiguous "I want to hear this".
+            if (next > 0) setMuted(false)
+          }}
+          onToggleMute={() => setMuted((current) => !current)}
+        />
+
         <div className="h-px flex-1 bg-ink-800">
           <div
             className="h-px origin-left bg-sodium-500"
@@ -122,7 +153,97 @@ export function ClipPlayer({
           {formatTimecode(elapsed)} / {formatTimecode(duration)}
         </span>
       </div>
+
+      {(muted || volume === 0) && (
+        <p className="mt-2 self-start text-xs text-sodium-500">
+          Audio is muted — click the speaker to unmute.
+        </p>
+      )}
     </div>
+  )
+}
+
+/**
+ * Mute toggle and volume slider.
+ *
+ * Not optional chrome: without it there is no way to see whether the preview is
+ * silent because it's muted or because something upstream is wrong, and no way
+ * to do anything about it. The slider stays visible rather than hiding behind a
+ * hover, because "is this thing muted?" is a question you ask at a glance.
+ */
+function VolumeControl({
+  volume,
+  muted,
+  onVolume,
+  onToggleMute,
+}: {
+  volume: number
+  muted: boolean
+  onVolume: (value: number) => void
+  onToggleMute: () => void
+}) {
+  const silent = muted || volume === 0
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onToggleMute}
+        className={`btn btn-quiet px-1 ${silent ? 'text-sodium-500' : ''}`}
+        aria-label={silent ? 'Unmute' : 'Mute'}
+        title={silent ? 'Unmute' : 'Mute'}
+      >
+        <SpeakerIcon silent={silent} level={volume} />
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        value={silent ? 0 : volume}
+        onChange={(e) => onVolume(Number(e.target.value))}
+        aria-label="Volume"
+        className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-ink-700 accent-sodium-500"
+      />
+    </div>
+  )
+}
+
+function SpeakerIcon({ silent, level }: { silent: boolean; level: number }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M11 5 6 9H3v6h3l5 4V5Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      {silent ? (
+        <path
+          d="m16 9 5 6m0-6-5 6"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      ) : (
+        <>
+          <path
+            d="M15.5 9.5a3.5 3.5 0 0 1 0 5"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          {level > 0.5 && (
+            <path
+              d="M18.5 7a7 7 0 0 1 0 10"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          )}
+        </>
+      )}
+    </svg>
   )
 }
 
