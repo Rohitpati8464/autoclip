@@ -6,6 +6,7 @@ migration, event broker binding, and job queue startup are all covered too.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterator
 
 import pytest
@@ -53,7 +54,13 @@ class TestHealthAndSystem:
     def test_system_reports_this_machine(self, client: TestClient) -> None:
         body = client.get("/api/system").json()
 
-        assert body["python_version"].startswith("3.11")
+        # Compared against the running interpreter, not a hardcoded version:
+        # the project supports 3.11 and 3.12, and pinning the assertion to one
+        # of them made the test contradict the CI matrix it runs under.
+        running = f"{sys.version_info.major}.{sys.version_info.minor}"
+        assert body["python_version"].startswith(running)
+        assert (3, 11) <= sys.version_info[:2] < (3, 13)
+
         assert body["accel"] in ("cuda", "mps", "cpu")
         assert isinstance(body["nvenc_works"], bool)
 
