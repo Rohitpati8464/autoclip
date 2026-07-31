@@ -317,6 +317,34 @@ class TestClips:
     def test_missing_clip_is_404(self, client: TestClient) -> None:
         assert client.get("/api/clips/nope").status_code == 404
         assert client.patch("/api/clips/nope", json={"title": "x"}).status_code == 404
+        assert client.get("/api/clips/nope/crop-path").status_code == 404
+
+    def test_crop_path_is_404_before_reframe(self, client: TestClient, job_with_clips: Job) -> None:
+        # The review player treats this as "fall back to a centre crop", which
+        # is what the renderer does for these clips too.
+        clip_id = client.get(f"/api/jobs/{job_with_clips.id}/clips").json()[0]["id"]
+
+        assert client.get(f"/api/clips/{clip_id}/crop-path").status_code == 404
+
+    def test_crop_path_is_served_when_present(
+        self, client: TestClient, job_with_clips: Job, autoclip_home
+    ) -> None:
+        from autoclip.pipeline.reframe.croppath import centre_crop
+        from autoclip.pipeline.runner import JobWorkspace
+
+        clip = client.get(f"/api/jobs/{job_with_clips.id}/clips").json()[0]
+        path = centre_crop(1920, 1080, clip["duration_s"])
+        path.save(JobWorkspace(job_with_clips.id).crop_path(clip["id"]))
+
+        body = client.get(f"/api/clips/{clip['id']}/crop-path").json()
+
+        assert body["source_width"] == 1920
+        assert body["source_height"] == 1080
+        assert len(body["segments"]) == 1
+        # The client needs these to position the video; a missing field means a
+        # silently centre-cropped preview that disagrees with the export.
+        segment = body["segments"][0]
+        assert {"start_s", "end_s", "width", "height", "keyframes", "fit"} <= segment.keys()
 
     def test_words_need_a_transcript(self, client: TestClient, job_with_clips: Job) -> None:
         # The job has clips but no transcript on disk, which is exactly the

@@ -75,6 +75,28 @@ async def clip_words(clip_id: str) -> list[WordOut]:
     return [WordOut(text=w.text, start=w.start, end=w.end, speaker=w.speaker) for w in words]
 
 
+@router.get("/clips/{clip_id}/crop-path")
+async def clip_crop_path(clip_id: str) -> dict:
+    """The computed crop path for a clip, so the preview can match the export.
+
+    Without this the review player can only centre-crop, which on a tracked shot
+    shows different framing from the file that gets rendered — sometimes with
+    the speaker half out of frame. Reviewing framing against the wrong framing
+    is worse than not previewing it at all.
+    """
+    clip = await asyncio.to_thread(store.get_clip, clip_id)
+    if clip is None:
+        raise HTTPException(status_code=404, detail="Clip not found.")
+
+    cached = JobWorkspace(clip.job_id).crop_path(clip.id)
+    if not cached.exists():
+        # Audio-only sources and pre-reframe jobs legitimately have none; the
+        # client falls back to a centre crop.
+        raise HTTPException(status_code=404, detail="No crop path for this clip yet.")
+
+    return (await asyncio.to_thread(CropPath.load, cached)).to_dict()
+
+
 @router.patch("/clips/{clip_id}", response_model=ClipOut)
 async def patch_clip(clip_id: str, payload: ClipPatchIn) -> ClipOut:
     """Trim, retitle, or keep/discard a clip.

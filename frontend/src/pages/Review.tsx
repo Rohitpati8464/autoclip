@@ -7,6 +7,7 @@ import {
   formatDuration,
   type CaptionStyle,
   type Clip,
+  type CropPath,
   type Job,
   type Word,
 } from '../api'
@@ -24,6 +25,7 @@ export function Review() {
   const [styles, setStyles] = useState<CaptionStyle[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [words, setWords] = useState<Word[]>([])
+  const [cropPath, setCropPath] = useState<CropPath | null>(null)
   const [wordsDirty, setWordsDirty] = useState(false)
   const [savingWords, setSavingWords] = useState(false)
   const [exporting, setExporting] = useState<Set<string>>(new Set())
@@ -53,6 +55,12 @@ export function Review() {
       .getClipWords(selected.id)
       .then(setWords)
       .catch(() => setWords([]))
+    // 404 is expected for audio-only sources and jobs that never reframed; the
+    // player falls back to a centre crop, matching what the renderer does.
+    api
+      .getCropPath(selected.id)
+      .then(setCropPath)
+      .catch(() => setCropPath(null))
   }, [selected?.id])
 
   const patchClip = useCallback((updated: Clip) => {
@@ -207,6 +215,7 @@ export function Review() {
                   words={words}
                   style={activeStyle}
                   ratio={selected.ratio}
+                  cropPath={cropPath}
                 />
                 <TrimBar
                   words={words}

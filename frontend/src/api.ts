@@ -77,6 +77,30 @@ export interface Word {
   speaker: string | null
 }
 
+export interface CropKeyframe {
+  t: number
+  x: number
+  y: number
+}
+
+export interface CropSegment {
+  start_s: number
+  end_s: number
+  width: number
+  height: number
+  keyframes: CropKeyframe[]
+  strategy: 'track' | 'wide' | 'general'
+  zoom: number
+  fit: boolean
+}
+
+/** Mirrors autoclip.pipeline.reframe.croppath.CropPath. */
+export interface CropPath {
+  source_width: number
+  source_height: number
+  segments: CropSegment[]
+}
+
 export interface CaptionStyle {
   key: string
   label: string
@@ -231,6 +255,8 @@ export const api = {
 
   listClips: (jobId: string) => request<Clip[]>(`/api/jobs/${jobId}/clips`),
   getClip: (clipId: string) => request<Clip>(`/api/clips/${clipId}`),
+
+  getCropPath: (clipId: string) => request<CropPath>(`/api/clips/${clipId}/crop-path`),
   getClipWords: (clipId: string) => request<Word[]>(`/api/clips/${clipId}/words`),
 
   patchClip: (

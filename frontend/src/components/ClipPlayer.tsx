@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { formatTimecode, type CaptionStyle, type Word } from '../api'
+import { formatTimecode, type CaptionStyle, type CropPath, type Word } from '../api'
 
 const VOLUME_KEY = 'autoclip.volume'
+
+/** Output shapes, matching autoclip.pipeline.export.RATIOS. */
+const ASPECTS: Record<string, [number, number]> = {
+  '9:16': [9, 16],
+  '1:1': [1, 1],
+  '16:9': [16, 9],
+}
+
+/** Tallest the preview may be, so the transport row stays on screen. */
+const MAX_HEIGHT_VH = 62
 
 function readStoredVolume(): number {
   const stored = Number(window.localStorage.getItem(VOLUME_KEY))
@@ -24,6 +34,7 @@ export function ClipPlayer({
   words,
   style,
   ratio,
+  cropPath,
 }: {
   src: string
   startS: number
@@ -31,6 +42,7 @@ export function ClipPlayer({
   words: Word[]
   style: CaptionStyle | undefined
   ratio: string
+  cropPath?: CropPath | null
 }) {
   const video = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -89,13 +101,20 @@ export function ClipPlayer({
 
   const elapsed = Math.max(0, time - startS)
   const duration = Math.max(0.01, endS - startS)
-  const aspect = ratio === '1:1' ? '1 / 1' : ratio === '16:9' ? '16 / 9' : '9 / 16'
+
+  const cropStyle = cropWindowStyle(cropPath, elapsed)
+  const [aspectW, aspectH] = ASPECTS[ratio] ?? ASPECTS['9:16']
+  // Height alone can't bound the box: with width:100% and an aspect-ratio, a
+  // max-height clamp shortens the element without narrowing it, so the rendered
+  // shape stops matching the ratio — a 9:16 preview ends up looking square.
+  // Deriving a matching max-width makes the box shrink along both axes instead.
+  const maxWidth = `${((MAX_HEIGHT_VH * aspectW) / aspectH).toFixed(3)}vh`
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="mx-auto flex w-full flex-col items-stretch" style={{ maxWidth }}>
       <div
         className="relative w-full overflow-hidden bg-ink-850"
-        style={{ aspectRatio: aspect, maxHeight: '62vh' }}
+        style={{ aspectRatio: `${aspectW} / ${aspectH}` }}
         onClick={toggle}
         role="button"
         tabIndex={0}
@@ -110,7 +129,8 @@ export function ClipPlayer({
         <video
           ref={video}
           src={src}
-          className="size-full object-cover"
+          className={cropStyle ? 'absolute max-w-none' : 'size-full object-cover'}
+          style={cropStyle ?? undefined}
           onTimeUpdate={onTimeUpdate}
           preload="auto"
           playsInline
@@ -161,6 +181,64 @@ export function ClipPlayer({
       )}
     </div>
   )
+}
+
+/**
+ * Position the source video so the preview box shows the crop the renderer will.
+ *
+ * Everything is expressed as a percentage of the crop window, which makes it
+ * independent of how large the preview happens to be drawn. Returns null when
+ * there is no crop path — the caller then falls back to a centre crop, which is
+ * what the renderer does in that case too.
+ */
+function cropWindowStyle(
+  cropPath: CropPath | null | undefined,
+  elapsed: number,
+): React.CSSProperties | null {
+  if (!cropPath || cropPath.segments.length === 0) return null
+
+  const segment =
+    cropPath.segments.find((s) => elapsed >= s.start_s && elapsed < s.end_s) ??
+    cropPath.segments[cropPath.segments.length - 1]
+
+  // A fitted segment shows the whole frame over a blur rather than cropping.
+  // Letting it fall through to object-contain is closer than any crop would be.
+  if (segment.fit) return null
+
+  const { x, y } = interpolate(segment.keyframes, elapsed)
+  const { source_width: sourceW, source_height: sourceH } = cropPath
+
+  return {
+    width: `${(sourceW / segment.width) * 100}%`,
+    height: `${(sourceH / segment.height) * 100}%`,
+    left: `${(-x / segment.width) * 100}%`,
+    top: `${(-y / segment.height) * 100}%`,
+  }
+}
+
+/** Piecewise-linear lookup, matching croppath.axis_expression on the server. */
+function interpolate(
+  keyframes: { t: number; x: number; y: number }[],
+  t: number,
+): { x: number; y: number } {
+  if (keyframes.length === 0) return { x: 0, y: 0 }
+  if (keyframes.length === 1) return { x: keyframes[0].x, y: keyframes[0].y }
+
+  if (t <= keyframes[0].t) return { x: keyframes[0].x, y: keyframes[0].y }
+  const last = keyframes[keyframes.length - 1]
+  if (t >= last.t) return { x: last.x, y: last.y }
+
+  for (let i = 0; i < keyframes.length - 1; i += 1) {
+    const a = keyframes[i]
+    const b = keyframes[i + 1]
+    if (t >= a.t && t <= b.t) {
+      const span = b.t - a.t
+      const ratio = span > 0 ? (t - a.t) / span : 0
+      return { x: a.x + (b.x - a.x) * ratio, y: a.y + (b.y - a.y) * ratio }
+    }
+  }
+
+  return { x: last.x, y: last.y }
 }
 
 /**
