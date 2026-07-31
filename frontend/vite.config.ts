@@ -5,9 +5,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    // Built into the Python package so `pip install clipforge` ships the UI —
-    // the wheel only includes backend/clipforge, and FastAPI serves it from there.
-    outDir: '../backend/clipforge/static',
+    // Built into the Python package so `pip install autoclip` ships the UI —
+    // the wheel only includes backend/autoclip, and FastAPI serves it from there.
+    outDir: '../backend/autoclip/static',
     emptyOutDir: true,
   },
   server: {

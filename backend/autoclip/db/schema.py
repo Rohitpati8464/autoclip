@@ -117,8 +117,8 @@ def migrate(conn: sqlite3.Connection) -> int:
 
     if current > SCHEMA_VERSION:
         raise RuntimeError(
-            f"Database schema version {current} is newer than this ClipForge "
-            f"build supports ({SCHEMA_VERSION}). Upgrade ClipForge."
+            f"Database schema version {current} is newer than this AutoClip "
+            f"build supports ({SCHEMA_VERSION}). Upgrade AutoClip."
         )
 
     for version in range(current, SCHEMA_VERSION):

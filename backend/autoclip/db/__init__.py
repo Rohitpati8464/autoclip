@@ -45,7 +45,7 @@ def connect(db_path: Path | None = None) -> sqlite3.Connection:
 def _thread_connection() -> sqlite3.Connection:
     """Return this thread's shared connection, opening it on first use.
 
-    Keyed by database path so a test that repoints ``CLIPFORGE_HOME`` doesn't
+    Keyed by database path so a test that repoints ``AUTOCLIP_HOME`` doesn't
     keep talking to the previous database.
     """
     target = paths.db_path()

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pysubs2
 import pytest
-from clipforge.pipeline import captions
-from clipforge.pipeline.transcript import Word
+from autoclip.pipeline import captions
+from autoclip.pipeline.transcript import Word
 
 
 def words_from(spec: list[tuple[str, float, float]]) -> list[Word]:

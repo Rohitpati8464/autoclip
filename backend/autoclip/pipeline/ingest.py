@@ -1,6 +1,6 @@
 """Ingestion — YouTube URLs and local file uploads become source records.
 
-Both paths converge on a validated :class:`~clipforge.db.models.Source` with a
+Both paths converge on a validated :class:`~autoclip.db.models.Source` with a
 file on disk and probed metadata.
 
 A note on YouTube: as of 2026 most anonymous downloads hit a bot check, and
@@ -172,28 +172,28 @@ def _translate_ytdlp_error(exc: Exception, settings: IngestSettings) -> IngestEr
                 "cookies from — in Settings, or via config.json's "
                 '`ingest.cookies_from_browser` (e.g. "chrome", "firefox", "edge"). '
                 "You must be signed in to YouTube in that browser, and it must be closed "
-                "while ClipForge downloads."
+                "while AutoClip downloads."
             )
         return IngestError("YouTube blocked this download with a bot check.", hint=hint)
 
     if "private video" in message or "members-only" in message:
         return IngestError(
             "This video is private or members-only.",
-            hint="ClipForge only downloads content you can access and have the rights to use.",
+            hint="AutoClip only downloads content you can access and have the rights to use.",
         )
     if "unavailable" in message or "removed" in message:
         return IngestError("This video is unavailable or has been removed.")
     if "drm" in message:
         return IngestError(
             "This content is DRM-protected.",
-            hint="ClipForge does not and will not circumvent DRM.",
+            hint="AutoClip does not and will not circumvent DRM.",
         )
 
     return IngestError(
         "yt-dlp could not download this video.",
         hint=(
             "YouTube changes frequently and yt-dlp is updated often. Try "
-            "`clipforge update-ytdlp` to pull the latest version.\n\n"
+            "`autoclip update-ytdlp` to pull the latest version.\n\n"
             f"Original error: {exc}"
         ),
     )
@@ -215,7 +215,7 @@ def _find_downloaded_file(directory: Path) -> Path | None:
 
 
 def ingest_file(path: Path, *, move: bool = False, title: str | None = None) -> Source:
-    """Register a local file as a source, copying it into ClipForge's media store.
+    """Register a local file as a source, copying it into AutoClip's media store.
 
     Copying rather than referencing in place means a job stays reproducible even
     if the user moves or deletes the original.
@@ -283,7 +283,7 @@ def _probe_and_validate(path: Path) -> ffmpeg.MediaInfo:
         raise IngestError(
             f"{path.name} has no audio track.",
             hint=(
-                "ClipForge finds clips by transcribing speech, so a file with no audio "
+                "AutoClip finds clips by transcribing speech, so a file with no audio "
                 "has nothing to work from."
             ),
         )

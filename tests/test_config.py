@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from clipforge import config, paths
+from autoclip import config, paths
 
 
 def test_defaults_load_without_a_config_file() -> None:
@@ -91,7 +91,7 @@ class TestSecrets:
         self, fake_keyring, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         config.set_secret("anthropic", "from-keyring")
-        monkeypatch.setenv("CLIPFORGE_ANTHROPIC_KEY", "from-env")
+        monkeypatch.setenv("AUTOCLIP_ANTHROPIC_KEY", "from-env")
 
         assert config.get_secret("anthropic") == "from-env"
 
@@ -136,8 +136,8 @@ class TestSecretsWithoutKeyring:
         assert config.get_secret("gemini") == "sk-gemini"
 
 
-def test_config_file_is_written_under_clipforge_home(clipforge_home: Path) -> None:
+def test_config_file_is_written_under_autoclip_home(autoclip_home: Path) -> None:
     config.save(config.load())
 
-    assert paths.config_path() == clipforge_home.resolve() / "config.json"
+    assert paths.config_path() == autoclip_home.resolve() / "config.json"
     assert paths.config_path().exists()

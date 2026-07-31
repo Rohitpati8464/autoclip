@@ -1,8 +1,8 @@
-# ClipForge
+# AutoClip
 
 **Open-source, local-first AI video clipper.** Long video in → ranked, caption-burned, speaker-tracked 9:16 clips out.
 
-Paste a YouTube link or drop a file. ClipForge transcribes it, uses an LLM to find the moments worth clipping, reframes them to vertical while tracking whoever is speaking, burns in animated captions, and exports platform-ready MP4s.
+Paste a YouTube link or drop a file. AutoClip transcribes it, uses an LLM to find the moments worth clipping, reframes them to vertical while tracking whoever is speaking, burns in animated captions, and exports platform-ready MP4s.
 
 No accounts. No uploads to anyone's servers. No watermarks. No subscription. MIT licensed.
 
@@ -10,7 +10,7 @@ No accounts. No uploads to anyone's servers. No watermarks. No subscription. MIT
 
 ## Why
 
-Existing open-source clippers stop at "works on my machine" — no UI, janky reframing, ugly captions. ClipForge ships the full loop: ingest → clips → review → export.
+Existing open-source clippers stop at "works on my machine" — no UI, janky reframing, ugly captions. AutoClip ships the full loop: ingest → clips → review → export.
 
 Two ways to run it:
 
@@ -23,7 +23,7 @@ Two ways to run it:
 - **ffmpeg** with `libass` and `libx264` compiled in — a "full" build, not "essentials". Both `ffmpeg` and `ffprobe` on your PATH.
 - **Optional:** an NVIDIA GPU or Apple Silicon for faster transcription. CPU-only works, just slower.
 
-Run `clipforge doctor` at any point. It checks all of the above and tells you exactly what to fix.
+Run `autoclip doctor` at any point. It checks all of the above and tells you exactly what to fix.
 
 ## Install
 
@@ -41,11 +41,11 @@ cd frontend && npm install && npm run build
 Check the machine, then start:
 
 ```bash
-clipforge doctor
+autoclip doctor
 ```
 
 ```bash
-clipforge serve
+autoclip serve
 ```
 
 That opens `http://localhost:8000`.
@@ -67,25 +67,25 @@ docker compose -f docker/compose.yaml --profile gpu up --build
 Add an API key (or start Ollama), then paste a link:
 
 ```bash
-clipforge config set-secret anthropic
+autoclip config set-secret anthropic
 ```
 
 ```bash
-clipforge clip "https://youtube.com/watch?v=..."
+autoclip clip "https://youtube.com/watch?v=..."
 ```
 
 Everything the UI does is available from the CLI:
 
 | command                       | does                                          |
 | ----------------------------- | --------------------------------------------- |
-| `clipforge doctor`            | check this machine and explain what's missing  |
-| `clipforge serve`             | start the web app                              |
-| `clipforge clip <url\|file>`  | run the whole pipeline and export              |
-| `clipforge jobs`              | list recent jobs                               |
-| `clipforge providers`         | check which AI providers are reachable         |
-| `clipforge styles`            | list caption presets                           |
-| `clipforge config show`       | print settings                                 |
-| `clipforge update-ytdlp`      | update yt-dlp after a YouTube change           |
+| `autoclip doctor`            | check this machine and explain what's missing  |
+| `autoclip serve`             | start the web app                              |
+| `autoclip clip <url\|file>`  | run the whole pipeline and export              |
+| `autoclip jobs`              | list recent jobs                               |
+| `autoclip providers`         | check which AI providers are reachable         |
+| `autoclip styles`            | list caption presets                           |
+| `autoclip config show`       | print settings                                 |
+| `autoclip update-ytdlp`      | update yt-dlp after a YouTube change           |
 
 ### YouTube downloads
 
@@ -117,9 +117,9 @@ Clip quality tracks model quality closely. A 7B local model returns valid JSON f
 
 ## Configuration
 
-Settings live in `~/.clipforge/config.json`. API keys go in your OS keyring — Credential Manager on Windows, Keychain on macOS, Secret Service on Linux — never in that file. If no keyring backend exists, ClipForge falls back to plaintext **and says so**, in the UI and in `doctor`.
+Settings live in `~/.autoclip/config.json`. API keys go in your OS keyring — Credential Manager on Windows, Keychain on macOS, Secret Service on Linux — never in that file. If no keyring backend exists, AutoClip falls back to plaintext **and says so**, in the UI and in `doctor`.
 
-All artifacts live under `~/.clipforge/`, relocatable with the `CLIPFORGE_HOME` environment variable.
+All artifacts live under `~/.autoclip/`, relocatable with the `AUTOCLIP_HOME` environment variable.
 
 ## Caption styles
 
@@ -145,7 +145,7 @@ Not yet done: the reframe acceptance bar has unit coverage but has not been vali
 
 ## Legal
 
-ClipForge bundles [yt-dlp](https://github.com/yt-dlp/yt-dlp). **Only download content you own or have the rights to process.** ClipForge contains no workarounds for DRM or paywalled content and never will.
+AutoClip bundles [yt-dlp](https://github.com/yt-dlp/yt-dlp). **Only download content you own or have the rights to process.** AutoClip contains no workarounds for DRM or paywalled content and never will.
 
 ## License
 

@@ -82,7 +82,7 @@ def ffmpeg_path() -> str:
     exe = shutil.which("ffmpeg")
     if not exe:
         raise FFmpegError(
-            "ffmpeg was not found on PATH. Run `clipforge doctor` for install instructions.",
+            "ffmpeg was not found on PATH. Run `autoclip doctor` for install instructions.",
             command=["ffmpeg"],
         )
     return exe
@@ -92,7 +92,7 @@ def ffprobe_path() -> str:
     exe = shutil.which("ffprobe")
     if not exe:
         raise FFmpegError(
-            "ffprobe was not found on PATH. Run `clipforge doctor` for install instructions.",
+            "ffprobe was not found on PATH. Run `autoclip doctor` for install instructions.",
             command=["ffprobe"],
         )
     return exe

@@ -67,7 +67,7 @@ def _model_load_error(exc: Exception, device: str, compute_type: str) -> Transcr
         return TranscriptionError(
             f"This device does not support the '{compute_type}' compute type.\n"
             f"Supported on {device}: {options}.\n\n"
-            "Clear whisper.compute_type in config.json to let ClipForge choose, "
+            "Clear whisper.compute_type in config.json to let AutoClip choose, "
             "or set it to one of the supported values."
         )
 
@@ -75,7 +75,7 @@ def _model_load_error(exc: Exception, device: str, compute_type: str) -> Transcr
         return TranscriptionError(
             f"Could not load Whisper on the GPU: {message}\n\n"
             "This is a missing CUDA runtime library. Install it with "
-            "`uv pip install 'clipforge[gpu]'`, then retry — the job resumes "
+            "`uv pip install 'autoclip[gpu]'`, then retry — the job resumes "
             "from this stage."
         )
 
@@ -94,7 +94,7 @@ def transcribe(
 
     Preconditions:
         audio is a decodable audio file, ideally 16 kHz mono as produced by
-        :func:`clipforge.pipeline.prepare.extract_audio`.
+        :func:`autoclip.pipeline.prepare.extract_audio`.
     """
     settings = settings or WhisperSettings()
 
@@ -102,7 +102,7 @@ def transcribe(
         from faster_whisper import WhisperModel
     except ImportError as exc:  # pragma: no cover - faster-whisper is a core dep
         raise TranscriptionError(
-            "faster-whisper is not installed. Run `clipforge doctor` for details."
+            "faster-whisper is not installed. Run `autoclip doctor` for details."
         ) from exc
 
     device, compute_type = resolve_compute(settings)
@@ -207,14 +207,14 @@ def diarize(
     if pipeline_cls is None:
         log.warning(
             "WhisperX is not installed; skipping diarization. "
-            "Install it with `uv pip install 'clipforge[diarization]'`."
+            "Install it with `uv pip install 'autoclip[diarization]'`."
         )
         return transcript
 
     if not hf_token:
         log.warning(
             "Diarization needs a HuggingFace token. Set one with "
-            "`clipforge config set-secret huggingface_token`, and accept the pyannote "
+            "`autoclip config set-secret huggingface_token`, and accept the pyannote "
             "model licences on huggingface.co. Continuing without speaker labels."
         )
         return transcript

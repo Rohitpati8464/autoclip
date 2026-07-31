@@ -7,7 +7,7 @@ on macOS, Secret Service on Linux.
 
 If no keyring backend is available (headless Linux, some Docker images), we fall
 back to writing secrets into ``config.json`` with restrictive permissions and
-set :attr:`Settings.insecure_secret_storage` so the UI and ``clipforge doctor``
+set :attr:`Settings.insecure_secret_storage` so the UI and ``autoclip doctor``
 can warn about it. Silently downgrading security without telling the user is the
 thing we're trying to avoid.
 """
@@ -28,7 +28,11 @@ from . import paths
 
 log = logging.getLogger(__name__)
 
-KEYRING_SERVICE = "clipforge"
+KEYRING_SERVICE = "autoclip"
+
+#: Keyring service used before the rename. Read from as a fallback so keys
+#: stored under the old name aren't silently lost; writes always use the new one.
+LEGACY_KEYRING_SERVICE = "clipforge"
 
 ProviderName = Literal["anthropic", "openai", "gemini", "ollama"]
 
@@ -193,18 +197,19 @@ def get_secret(key: str, settings: Settings | None = None) -> str | None:
 
     ``key`` is a provider name for API keys, or :data:`HF_TOKEN_KEY`.
     """
-    env_override = os.environ.get(f"CLIPFORGE_{key.upper()}_KEY")
+    env_override = os.environ.get(f"AUTOCLIP_{key.upper()}_KEY")
     if env_override:
         return env_override
 
     kr = _keyring()
     if kr is not None:
-        try:
-            value = kr.get_password(KEYRING_SERVICE, key)
-            if value:
-                return value
-        except Exception as exc:  # pragma: no cover - backend dependent
-            log.warning("Keyring read failed for %s: %s", key, exc)
+        for service in (KEYRING_SERVICE, LEGACY_KEYRING_SERVICE):
+            try:
+                value = kr.get_password(service, key)
+                if value:
+                    return value
+            except Exception as exc:  # pragma: no cover - backend dependent
+                log.warning("Keyring read failed for %s: %s", key, exc)
 
     settings = settings if settings is not None else load()
     return settings._fallback_secrets.get(key) or None
@@ -236,9 +241,11 @@ def delete_secret(key: str, settings: Settings | None = None) -> None:
     kr = _keyring()
     if kr is not None:
         # Backends raise when the entry is absent; deleting a missing secret is
-        # not an error from the caller's point of view.
-        with contextlib.suppress(Exception):
-            kr.delete_password(KEYRING_SERVICE, key)
+        # not an error from the caller's point of view. Both services are cleared
+        # so a delete can't leave a pre-rename copy behind to resurface.
+        for service in (KEYRING_SERVICE, LEGACY_KEYRING_SERVICE):
+            with contextlib.suppress(Exception):
+                kr.delete_password(service, key)
 
     settings = settings if settings is not None else load()
     if settings._fallback_secrets.pop(key, None) is not None:

@@ -9,16 +9,16 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
-from clipforge import app as app_module
-from clipforge import config
-from clipforge.app import create_app
-from clipforge.db import store
-from clipforge.db.models import Clip, Job, Source, new_id
+from autoclip import app as app_module
+from autoclip import config
+from autoclip.app import create_app
+from autoclip.db import store
+from autoclip.db.models import Clip, Job, Source, new_id
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def client(clipforge_home, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+def client(autoclip_home, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     # The background worker is off here so queued jobs stay queued: these tests
     # are about the HTTP contract, and a worker racing to pick jobs up would
     # make every status assertion flaky. The worker has its own tests.
@@ -378,12 +378,12 @@ class TestSecretsNeverLeak:
         assert "DEADBEEF" not in payload
 
     def test_config_file_has_no_secrets_when_keyring_works(
-        self, client: TestClient, fake_keyring, clipforge_home
+        self, client: TestClient, fake_keyring, autoclip_home
     ) -> None:
         client.put("/api/settings/secrets", json={"key": "anthropic", "value": "sk-DEADBEEF"})
         client.put("/api/settings", json={"whisper": {"model": "medium"}})
 
-        from clipforge import paths
+        from autoclip import paths
 
         assert "DEADBEEF" not in paths.config_path().read_text(encoding="utf-8")
         assert config.get_secret("anthropic") == "sk-DEADBEEF"

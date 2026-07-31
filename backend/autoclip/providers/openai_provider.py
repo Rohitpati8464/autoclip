@@ -1,6 +1,6 @@
 """OpenAI-compatible provider.
 
-Deliberately the widest adapter in ClipForge. Because ``base_url`` is
+Deliberately the widest adapter in AutoClip. Because ``base_url`` is
 configurable and the Chat Completions shape is a de-facto standard, this one
 class also covers OpenRouter, Groq, DeepSeek, Together, Fireworks, vLLM, and a
 local LM Studio server. "Bring any API key" is mostly this file.
@@ -53,7 +53,7 @@ class OpenAIProvider(LLMProvider):
             raise ProviderError(
                 "No API key is set for the OpenAI-compatible provider.",
                 provider=self.name,
-                hint="Add one with `clipforge config set-secret openai`.",
+                hint="Add one with `autoclip config set-secret openai`.",
             )
 
         kwargs = {"api_key": key}
@@ -129,7 +129,7 @@ def _translate(exc: Exception, provider: str, model: str) -> ProviderError:
         return ProviderError(
             "The endpoint rejected the API key.",
             provider=provider,
-            hint="Re-add it with `clipforge config set-secret openai`.",
+            hint="Re-add it with `autoclip config set-secret openai`.",
         )
     if "429" in lowered or "rate limit" in lowered:
         return ProviderError(

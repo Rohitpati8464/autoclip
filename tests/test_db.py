@@ -5,9 +5,9 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
-from clipforge import db, paths
-from clipforge.db import store
-from clipforge.db.models import Clip, ClipEdit, Export, Job, Source, Transcript, new_id
+from autoclip import db, paths
+from autoclip.db import store
+from autoclip.db.models import Clip, ClipEdit, Export, Job, Source, Transcript, new_id
 
 
 def test_init_creates_database_at_schema_version() -> None:
@@ -43,7 +43,7 @@ def test_newer_schema_version_is_refused(initialised_db: int) -> None:
     with db.connection() as conn:
         conn.execute(f"PRAGMA user_version = {db.SCHEMA_VERSION + 5}")
 
-    with pytest.raises(RuntimeError, match="newer than this ClipForge build"):
+    with pytest.raises(RuntimeError, match="newer than this AutoClip build"):
         db.init()
 
 

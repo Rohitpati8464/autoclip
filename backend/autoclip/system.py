@@ -5,7 +5,7 @@ compiled in, whether there's a usable GPU, which CTranslate2 compute type suits
 it, and whether the optional extras are installed.
 
 Every probe here is defensive: a missing tool is a reported finding, never an
-exception. ``clipforge doctor`` renders this report, and the pipeline reads it
+exception. ``autoclip doctor`` renders this report, and the pipeline reads it
 to choose encoders and compute types.
 """
 

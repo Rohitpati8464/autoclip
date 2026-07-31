@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import PureWindowsPath
 
 import pytest
-from clipforge.pipeline import ffmpeg
+from autoclip.pipeline import ffmpeg
 
 
 class TestFilterPathEscaping:

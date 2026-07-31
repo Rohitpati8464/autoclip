@@ -1,9 +1,9 @@
 """On-demand download and caching of ML model bundles.
 
 MediaPipe's task bundles are a few megabytes each. Fetching them on first use
-into ``~/.clipforge/models/`` keeps them out of the repository and out of the
+into ``~/.autoclip/models/`` keeps them out of the repository and out of the
 wheel, which is the same thing Whisper does with its weights — users expect it,
-and it keeps ``pip install clipforge`` small.
+and it keeps ``pip install autoclip`` small.
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ def ensure(key: str, *, timeout: float = 120.0) -> Path:
     """Return a local path to the model, downloading it if absent.
 
     Preconditions:
-        The process can write to the ClipForge home directory.
+        The process can write to the AutoClip home directory.
     """
     spec = _spec(key)
     destination = model_path(key)

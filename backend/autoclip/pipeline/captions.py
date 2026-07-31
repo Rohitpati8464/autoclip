@@ -238,7 +238,7 @@ def group_words(
 # ASS generation
 # --------------------------------------------------------------------------
 
-STYLE_NAME = "ClipForge"
+STYLE_NAME = "AutoClip"
 
 
 def build_ass(

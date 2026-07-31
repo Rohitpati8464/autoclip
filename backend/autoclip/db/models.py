@@ -1,4 +1,4 @@
-"""Row models for the tables in :mod:`clipforge.db.schema`.
+"""Row models for the tables in :mod:`autoclip.db.schema`.
 
 Plain dataclasses rather than Pydantic models: these mirror SQLite rows and are
 constructed from trusted database output, so validation would be dead weight.

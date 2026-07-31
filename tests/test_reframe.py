@@ -9,8 +9,8 @@ from __future__ import annotations
 import math
 
 import pytest
-from clipforge.pipeline.reframe import croppath, smoothing
-from clipforge.pipeline.reframe.croppath import (
+from autoclip.pipeline.reframe import croppath, smoothing
+from autoclip.pipeline.reframe.croppath import (
     CropKeyframe,
     CropSegment,
     Strategy,
@@ -20,8 +20,8 @@ from clipforge.pipeline.reframe.croppath import (
     segment_crop_filter,
     target_crop_size,
 )
-from clipforge.pipeline.reframe.faces import FaceObservation
-from clipforge.pipeline.reframe.tracker import build_tracks
+from autoclip.pipeline.reframe.faces import FaceObservation
+from autoclip.pipeline.reframe.tracker import build_tracks
 
 
 class TestTargetCropSize:

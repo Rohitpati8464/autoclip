@@ -1,7 +1,7 @@
 """FastAPI application — REST API plus the built frontend, on one port.
 
 Serving the compiled React bundle from the same origin as the API is what keeps
-ClipForge a single process with no CORS configuration, no second port, and no
+AutoClip a single process with no CORS configuration, no second port, and no
 Node.js at runtime.
 """
 
@@ -25,7 +25,7 @@ from .jobs.queue import queue
 log = logging.getLogger(__name__)
 
 #: Set to "1" to serve the API without starting the background job worker.
-ENV_NO_WORKER = "CLIPFORGE_NO_WORKER"
+ENV_NO_WORKER = "AUTOCLIP_NO_WORKER"
 
 #: Where the built frontend is looked for, in priority order. The first is the
 #: packaged location (inside the wheel); the second is the dev build output.
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         log.info("Job worker disabled by %s=1.", ENV_NO_WORKER)
 
-    log.info("ClipForge %s ready. Artifacts in %s", __version__, paths.root())
+    log.info("AutoClip %s ready. Artifacts in %s", __version__, paths.root())
 
     try:
         yield
@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="ClipForge",
+        title="AutoClip",
         version=__version__,
         description="Local-first AI video clipper.",
         lifespan=lifespan,

@@ -1,11 +1,11 @@
-# ClipForge architecture
+# AutoClip architecture
 
 A single Python process serving a REST API and a compiled React bundle on one
 port, with a pipeline that turns long video into short clips.
 
 ```
                      ┌──────────────────────────────────────┐
-  browser  ◀────────▶│ FastAPI (backend/clipforge/app.py)   │
+  browser  ◀────────▶│ FastAPI (backend/autoclip/app.py)   │
                      │  · /api/*        REST + SSE          │
                      │  · /*            built React bundle  │
                      └───────────────┬──────────────────────┘
@@ -23,16 +23,16 @@ port, with a pipeline that turns long video into short clips.
    └───────────────────────────────────────────────────────────────────┘
                                      │
                      ┌───────────────▼──────────────────────┐
-                     │ SQLite (~/.clipforge/clipforge.db)   │
+                     │ SQLite (~/.autoclip/autoclip.db)   │
                      └──────────────────────────────────────┘
 ```
 
 ## Why one process
 
-ClipForge is a local tool used by one person at a time. A queue broker, a worker
+AutoClip is a local tool used by one person at a time. A queue broker, a worker
 fleet, and a separate frontend server would each add an install step and a
 failure mode in exchange for concurrency nobody needs. The whole thing is
-`pip install clipforge && clipforge serve`.
+`pip install autoclip && autoclip serve`.
 
 The same reasoning drives the FIFO queue: transcription, face detection, and
 encoding each want the entire GPU. Running two jobs at once on a 6 GB card makes
@@ -41,10 +41,10 @@ both slower than running them in sequence.
 ## Layout
 
 ```
-backend/clipforge/
+backend/autoclip/
 ├── app.py            FastAPI application and static serving
 ├── cli.py            Typer CLI — doctor, clip, serve, config
-├── paths.py          artifact layout under CLIPFORGE_HOME
+├── paths.py          artifact layout under AUTOCLIP_HOME
 ├── config.py         settings + OS-keyring secrets
 ├── system.py         environment probing (ffmpeg, GPU, deps)
 ├── models.py         ML model bundle download and cache
@@ -122,7 +122,7 @@ Two checks look redundant and are not:
   can require a newer NVENC API than the installed driver provides, and that
   also only surfaces mid-render.
 
-Both are probed functionally, and `clipforge doctor` reports what it actually
+Both are probed functionally, and `autoclip doctor` reports what it actually
 tried.
 
 ### Compute type follows the hardware

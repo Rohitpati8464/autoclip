@@ -53,7 +53,7 @@ class JobQueue:
         self._requeue_interrupted()
         self._stopping = False
         self._wakeup = asyncio.Event()
-        self._task = asyncio.create_task(self._worker(), name="clipforge-job-queue")
+        self._task = asyncio.create_task(self._worker(), name="autoclip-job-queue")
         self.notify()
 
     async def stop(self) -> None:

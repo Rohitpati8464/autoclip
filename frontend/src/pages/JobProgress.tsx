@@ -5,7 +5,7 @@ import { api, formatDuration } from '../api'
 import { ErrorNote } from '../components/ErrorNote'
 import { useJobStream } from '../useJobStream'
 
-/** Stage order and labels, mirroring clipforge.pipeline.Stage. */
+/** Stage order and labels, mirroring autoclip.pipeline.Stage. */
 const STAGES = [
   { key: 'prepare', label: 'Prepare', note: 'Extracting audio and thumbnails' },
   { key: 'transcribe', label: 'Transcribe', note: 'Word-level timing' },

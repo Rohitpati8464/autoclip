@@ -37,7 +37,7 @@ class GeminiProvider(LLMProvider):
             raise ProviderError(
                 "No Gemini API key is set.",
                 provider=self.name,
-                hint="Add one with `clipforge config set-secret gemini`.",
+                hint="Add one with `autoclip config set-secret gemini`.",
             )
         return genai.Client(api_key=self.api_key)
 
@@ -94,7 +94,7 @@ def _translate(exc: Exception, provider: str, model: str) -> ProviderError:
         return ProviderError(
             "Google rejected the API key.",
             provider=provider,
-            hint="Re-add it with `clipforge config set-secret gemini`.",
+            hint="Re-add it with `autoclip config set-secret gemini`.",
         )
     if "429" in lowered or "quota" in lowered or "resource_exhausted" in lowered:
         return ProviderError(

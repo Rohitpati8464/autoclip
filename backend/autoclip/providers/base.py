@@ -1,6 +1,6 @@
 """LLM provider abstraction.
 
-Highlight detection is the one place ClipForge asks a language model to make a
+Highlight detection is the one place AutoClip asks a language model to make a
 judgement call, so the interface is deliberately narrow: a window of transcript
 goes in, a validated list of clip candidates comes out.
 
@@ -112,7 +112,7 @@ class DetectionConfig:
     max_duration_s: float = 90.0
     max_clips: int = 10
     language: str = ""
-    #: Prompt file stem in ``clipforge/prompts/``. Versioned so contributors can
+    #: Prompt file stem in ``autoclip/prompts/``. Versioned so contributors can
     #: iterate on prompts without touching code.
     prompt_version: str = "highlight_v1"
     temperature: float = 0.3
@@ -218,12 +218,12 @@ class LLMProvider(ABC):
 
 
 def load_prompt(version: str) -> str:
-    """Read a versioned prompt file from ``clipforge/prompts/``."""
+    """Read a versioned prompt file from ``autoclip/prompts/``."""
     path = PROMPT_DIR / f"{version}.txt"
     if not path.exists():
         raise ProviderError(
             f"Prompt '{version}' not found at {path}.",
-            hint="Prompt files live in backend/clipforge/prompts/ as versioned .txt files.",
+            hint="Prompt files live in backend/autoclip/prompts/ as versioned .txt files.",
         )
     return path.read_text(encoding="utf-8")
 

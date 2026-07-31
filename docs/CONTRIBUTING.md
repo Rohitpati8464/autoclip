@@ -1,6 +1,6 @@
-# Contributing to ClipForge
+# Contributing to AutoClip
 
-Thanks for looking. ClipForge is MIT and meant to be hacked on.
+Thanks for looking. AutoClip is MIT and meant to be hacked on.
 
 ## Getting set up
 
@@ -8,11 +8,11 @@ You need **Python 3.11 or 3.12** (not 3.13 — MediaPipe has no wheels for it),
 **Node 20+**, and **ffmpeg built with libass**.
 
 ```bash
-git clone https://github.com/ghzijad/clipforge
-cd clipforge
+git clone https://github.com/ghzijad/autoclip
+cd autoclip
 uv venv --python 3.11
 uv pip install -e ".[dev]"
-clipforge doctor
+autoclip doctor
 ```
 
 `doctor` tells you exactly what's missing and how to fix it. Start there rather
@@ -26,7 +26,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` serves on 5173 and proxies `/api` to 8000, so run `clipforge serve`
+`npm run dev` serves on 5173 and proxies `/api` to 8000, so run `autoclip serve`
 alongside it for hot reload against a live backend.
 
 ## Before you open a PR
@@ -51,7 +51,7 @@ specific.
 
 ## Good first contributions
 
-**Prompts.** `backend/clipforge/prompts/highlight_v1.txt` is plain text and has
+**Prompts.** `backend/autoclip/prompts/highlight_v1.txt` is plain text and has
 more effect on output quality than most code changes. Add `highlight_v2.txt` and
 compare on the same source video. No Python required.
 
@@ -97,11 +97,11 @@ Ruff handles formatting and linting; run it and move on. Beyond that:
 
 ## Reporting bugs
 
-Include the output of `clipforge doctor`. Most reports in this domain come down
+Include the output of `autoclip doctor`. Most reports in this domain come down
 to an ffmpeg build without libass, a GPU driver mismatch, or Python 3.13 — and
 `doctor` identifies all three immediately.
 
 ## Legal
 
-ClipForge bundles yt-dlp. It contains no DRM circumvention and will not accept
+AutoClip bundles yt-dlp. It contains no DRM circumvention and will not accept
 contributions that add any.

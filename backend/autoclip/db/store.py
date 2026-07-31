@@ -1,6 +1,6 @@
-"""CRUD operations over the ClipForge database.
+"""CRUD operations over the AutoClip database.
 
-Every function opens its own transaction via :func:`clipforge.db.connection`,
+Every function opens its own transaction via :func:`autoclip.db.connection`,
 so callers don't manage commits. Functions are synchronous; async callers should
 wrap them in ``asyncio.to_thread``.
 """

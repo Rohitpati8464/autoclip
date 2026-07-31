@@ -37,7 +37,7 @@ class AnthropicProvider(LLMProvider):
             raise ProviderError(
                 "No Anthropic API key is set.",
                 provider=self.name,
-                hint="Add one with `clipforge config set-secret anthropic`.",
+                hint="Add one with `autoclip config set-secret anthropic`.",
             )
 
         kwargs = {"api_key": self.api_key}
@@ -96,7 +96,7 @@ def _translate(exc: Exception, provider: str, model: str) -> ProviderError:
         return ProviderError(
             "Anthropic rejected the API key.",
             provider=provider,
-            hint="Re-add it with `clipforge config set-secret anthropic`.",
+            hint="Re-add it with `autoclip config set-secret anthropic`.",
         )
     if "rate limit" in lowered or "429" in lowered:
         return ProviderError(

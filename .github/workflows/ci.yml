@@ -63,7 +63,7 @@ jobs:
           uv run ruff format --check .
 
       - name: Type check
-        run: uv run mypy backend/clipforge
+        run: uv run mypy backend/autoclip
         continue-on-error: true
 
       - name: Unit tests
@@ -110,13 +110,13 @@ jobs:
           target: base
           push: false
           load: true
-          tags: clipforge:ci
+          tags: autoclip:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Smoke test
         run: |
-          docker run -d --name clipforge -p 8000:8000 clipforge:ci
+          docker run -d --name autoclip -p 8000:8000 autoclip:ci
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8000/api/health; then
               echo "\nHealthy."
@@ -125,5 +125,5 @@ jobs:
             sleep 2
           done
           echo "::error::Container never became healthy."
-          docker logs clipforge
+          docker logs autoclip
           exit 1

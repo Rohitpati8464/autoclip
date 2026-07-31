@@ -8,8 +8,8 @@ shapes models actually emit.
 from __future__ import annotations
 
 import pytest
-from clipforge.providers import ClipCandidates, DetectionConfig, TranscriptWindow
-from clipforge.providers.base import (
+from autoclip.providers import ClipCandidates, DetectionConfig, TranscriptWindow
+from autoclip.providers.base import (
     LLMProvider,
     ProviderError,
     ProviderStatus,
@@ -196,23 +196,23 @@ class TestDetectionLoop:
 
 class TestRegistry:
     def test_all_four_providers_are_registered(self) -> None:
-        from clipforge.providers import PROVIDERS
+        from autoclip.providers import PROVIDERS
 
         assert set(PROVIDERS) == {"anthropic", "openai", "gemini", "ollama"}
 
     def test_ollama_needs_no_key(self) -> None:
-        from clipforge.providers import OllamaProvider
+        from autoclip.providers import OllamaProvider
 
         assert OllamaProvider.requires_key is False
 
     def test_unknown_provider_raises(self) -> None:
-        from clipforge.providers import build_provider
+        from autoclip.providers import build_provider
 
         with pytest.raises(ProviderError, match="Unknown provider"):
             build_provider("not-a-provider")
 
     def test_openai_provider_accepts_a_custom_base_url(self) -> None:
-        from clipforge.providers import OpenAIProvider
+        from autoclip.providers import OpenAIProvider
 
         provider = OpenAIProvider("llama-3.1", base_url="https://openrouter.ai/api/v1")
 

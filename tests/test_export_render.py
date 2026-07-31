@@ -12,16 +12,16 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from clipforge.config import ExportSettings
-from clipforge.pipeline import captions, export, ffmpeg
-from clipforge.pipeline.reframe.croppath import (
+from autoclip.config import ExportSettings
+from autoclip.pipeline import captions, export, ffmpeg
+from autoclip.pipeline.reframe.croppath import (
     CropKeyframe,
     CropPath,
     CropSegment,
     Strategy,
     centre_crop,
 )
-from clipforge.pipeline.transcript import Word
+from autoclip.pipeline.transcript import Word
 
 pytestmark = pytest.mark.slow
 

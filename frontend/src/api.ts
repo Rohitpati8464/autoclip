@@ -1,5 +1,5 @@
 /**
- * Typed client for the ClipForge API.
+ * Typed client for the AutoClip API.
  *
  * Same-origin throughout: the server hands out the built bundle, so there is no
  * base URL to configure and no CORS to negotiate.
