@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import typer
@@ -29,6 +30,34 @@ def _status(passed: bool, warn_only: bool = False) -> str:
     if passed:
         return OK
     return WARN if warn_only else FAIL
+
+
+def _ffmpeg_install_hint() -> str:
+    """Platform-specific install advice that actually yields a usable ffmpeg.
+
+    The distinction matters more than it looks: the default package on both
+    Windows and macOS is a reduced build without libass, so following the
+    obvious instruction produces an ffmpeg that installs fine and then cannot
+    burn a single caption.
+    """
+    if sys.platform == "darwin":
+        return (
+            "  macOS: [cyan]brew install ffmpeg-full[/cyan] — not [cyan]ffmpeg[/cyan], "
+            "which Homebrew now ships as a reduced build with no libass.\n"
+            "  If you already installed the plain formula:\n"
+            "    [cyan]brew install ffmpeg-full && brew unlink ffmpeg && "
+            "brew link --force --overwrite ffmpeg-full[/cyan]"
+        )
+    if sys.platform == "win32":
+        return (
+            "  Windows: [cyan]winget install Gyan.FFmpeg[/cyan] — the [bold]full[/bold] "
+            "build, not [cyan]Gyan.FFmpeg.Essentials[/cyan], which omits libass."
+        )
+    return (
+        "  Debian/Ubuntu: [cyan]sudo apt install ffmpeg[/cyan]\n"
+        "  Fedora: [cyan]sudo dnf install ffmpeg[/cyan] (RPM Fusion)\n"
+        "  Arch: [cyan]sudo pacman -S ffmpeg[/cyan]"
+    )
 
 
 @app.command()
@@ -75,9 +104,7 @@ def doctor() -> None:
     if not ff.found or not ff.ffprobe_found:
         remediation.append(
             "Install ffmpeg and make sure both [cyan]ffmpeg[/cyan] and [cyan]ffprobe[/cyan] "
-            "are on PATH. Windows: [cyan]winget install Gyan.FFmpeg[/cyan]. "
-            "macOS: [cyan]brew install ffmpeg[/cyan]. Debian/Ubuntu: "
-            "[cyan]sudo apt install ffmpeg[/cyan]."
+            f"are on PATH.\n{_ffmpeg_install_hint()}"
         )
     else:
         table.add_row("  libass (captions)", _status(ff.has_libass), "subtitle burn-in")
@@ -111,10 +138,10 @@ def doctor() -> None:
                 WARN,
                 f"missing: {', '.join(optional_missing)}",
             )
-        if not ff.has_libass:
+        if not ff.has_libass or "ass" in missing:
             remediation.append(
-                "This ffmpeg build lacks libass, so captions cannot be burned in. "
-                "Install a full build (Windows: [cyan]Gyan.FFmpeg[/cyan] full, not essentials)."
+                "This ffmpeg build has no libass, so captions cannot be burned in — "
+                f"which is most of what AutoClip does.\n{_ffmpeg_install_hint()}"
             )
 
     console.print()

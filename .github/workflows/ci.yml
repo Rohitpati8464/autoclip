@@ -39,7 +39,12 @@ jobs:
 
       - name: Install ffmpeg (macOS)
         if: runner.os == 'macOS'
-        run: brew install ffmpeg
+        # ffmpeg-full, not ffmpeg: Homebrew split the formula, and the plain one
+        # is a reduced build with no libass — so it installs cleanly and then
+        # cannot burn a single caption. CI caught this against the real runner.
+        run: |
+          brew install ffmpeg-full
+          brew link --force --overwrite ffmpeg-full || true
 
       - name: Install ffmpeg (Windows)
         if: runner.os == 'Windows'

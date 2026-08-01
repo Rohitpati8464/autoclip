@@ -34,11 +34,35 @@ Pre-1.0. The reframe quality bar hasn't been validated against a fixed golden se
 | | |
 |---|---|
 | **Python** | 3.11 or 3.12 — **not 3.13.** MediaPipe publishes no 3.13 wheels and the reframe stage needs it. |
-| **ffmpeg** | A *full* build with `libass` and `libx264`. Both `ffmpeg` and `ffprobe` on PATH. |
+| **ffmpeg** | A *full* build with `libass` and `libx264`. Both `ffmpeg` and `ffprobe` on PATH. See below — the default package is the wrong one on macOS and Windows. |
 | **Node** | 20+, to build the UI. Not needed at runtime. |
 | **GPU** | Optional. NVIDIA or Apple Silicon speeds up transcription several-fold; CPU works, just slower. |
 
 `autoclip doctor` checks all of this and tells you exactly what to fix. Run it before anything else.
+
+### Installing ffmpeg correctly
+
+Captions are burned in with **libass**, and on two platforms the obvious package doesn't include it. It installs cleanly, then fails to burn a single caption.
+
+**macOS** — Homebrew split the formula; the plain one is a reduced build:
+
+```bash
+brew install ffmpeg-full
+```
+
+If you already installed the plain one: `brew unlink ffmpeg && brew link --force --overwrite ffmpeg-full`.
+
+**Windows** — install the *full* build, not `Gyan.FFmpeg.Essentials`:
+
+```bash
+winget install Gyan.FFmpeg
+```
+
+**Linux** — the distro package is fine:
+
+```bash
+sudo apt install ffmpeg
+```
 
 ## Quickstart
 
@@ -130,7 +154,7 @@ Everything here is a real failure hit during development, not hypothetical.
 
 **"Requested int8_float16 compute type, but the target device does not support..."** Clear `whisper.compute_type` in `~/.autoclip/config.json` and let AutoClip choose. It queries the backend for what's actually supported rather than guessing from your GPU model.
 
-**Captions don't appear in exports.** Your ffmpeg lacks libass. `doctor` reports this explicitly. On Windows install the *full* Gyan build, not "essentials".
+**Captions don't appear in exports, or ffmpeg says "No such filter: ass".** Your ffmpeg has no libass. `doctor` reports this and prints the right command for your platform. On macOS that means `brew install ffmpeg-full`, not `brew install ffmpeg`; on Windows the full Gyan build, not "essentials".
 
 **YouTube downloads fail with a bot check.** As of 2026, YouTube blocks most anonymous downloads and proof-of-origin tokens no longer clear it. Set **Settings → Ingest → cookies from browser** to a browser you're signed into, and **close that browser** first — it locks its cookie database while running. Uploading a file always works and needs none of this.
 
