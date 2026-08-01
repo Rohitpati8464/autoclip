@@ -45,27 +45,18 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install ffmpeg-full -y --no-progress
 
-      - name: Verify ffmpeg has libass
+      - name: Verify ffmpeg can burn subtitles
         shell: bash
+        # Checks for the `ass` filter rather than grepping the version banner for
+        # "libass". Not all builds print their configure line — Homebrew's does
+        # not — so the banner check failed on macOS against an ffmpeg that has
+        # libass perfectly well. The filter is what the export stage uses.
         run: |
-          ffmpeg -hide_banner -version | grep -q libass \
-            || { echo "::error::This ffmpeg build lacks libass; captions cannot be burned in."; exit 1; }
+          ffmpeg -hide_banner -filters | grep -qE '[[:space:]]ass[[:space:]]' \
+            || { echo "::error::This ffmpeg has no 'ass' filter; captions cannot be burned in."; exit 1; }
 
       - name: Create the environment
         run: uv venv --python ${{ matrix.python }}
-
-      - name: Put the environment on PATH
-        # Tools are run from this venv rather than through `uv run`, which syncs
-        # the whole project including optional extras — that would pull PyTorch
-        # on every lint job, and turns any extra's resolution problem into a
-        # failure of every step.
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            echo "$PWD/.venv/Scripts" >> "$GITHUB_PATH"
-          else
-            echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          fi
 
       - name: Install
         run: uv pip install -e ".[dev]"
@@ -77,22 +68,27 @@ jobs:
           uv pip install --dry-run -e ".[diarization]"
           uv pip install --dry-run -e ".[gpu]"
 
+      # `uv run --no-sync` runs each tool from the venv built above without
+      # re-resolving the project. Plain `uv run` would sync every optional
+      # extra (pulling PyTorch into a lint job), and putting .venv on PATH by
+      # hand doesn't survive the shell change on Windows, where bash writes a
+      # /d/a/... style path that later PowerShell steps can't use.
       - name: Lint
         run: |
-          ruff check .
-          ruff format --check .
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
 
       - name: Type check
-        run: mypy backend/autoclip
+        run: uv run --no-sync mypy backend/autoclip
         continue-on-error: true
 
       - name: Unit tests
-        run: pytest -m "not slow and not golden and not e2e" -q
+        run: uv run --no-sync pytest -m "not slow and not golden and not e2e" -q
 
       - name: Render tests
         # The real ffmpeg render path — the one that catches escaping, font, and
         # encoder problems that unit tests structurally cannot.
-        run: pytest -m "slow and not golden and not e2e" -q
+        run: uv run --no-sync pytest -m "slow and not golden and not e2e" -q
 
   frontend:
     name: Frontend
