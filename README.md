@@ -106,6 +106,20 @@ ollama pull llama3.1:8b
 
 Clip quality tracks model quality closely. A 7B model returns valid JSON full of mediocre picks; a frontier model is noticeably better at spotting a real hook. That's the honest trade for running offline.
 
+### Optional extras
+
+```bash
+uv pip install -e ".[gpu]"
+```
+
+CUDA runtime libraries for NVIDIA GPUs. Install these if `doctor` reports that CTranslate2 can't see your GPU — pip puts them somewhere the OS loader doesn't search, and AutoClip registers the location itself. On macOS this deliberately installs nothing: there's no CUDA there, and Apple Silicon takes the CPU path.
+
+```bash
+uv pip install -e ".[diarization]"
+```
+
+Speaker diarization via WhisperX — what lets the reframe stage cut to whoever is talking in a multi-person video. Pulls PyTorch (large), and needs a HuggingFace token plus acceptance of the gated pyannote model licences.
+
 ### Docker
 
 The guaranteed path — ffmpeg, Python version, and fonts all pinned:

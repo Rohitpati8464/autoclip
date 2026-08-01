@@ -69,9 +69,14 @@ diarization = [
 # NVIDIA CUDA 12 runtime libraries for faster-whisper/CTranslate2 on Windows and
 # Linux. Without these the usual failure is a missing cudnn_ops64_9.dll at the
 # first GPU transcribe.
+# Markers matter here: these wheels are not published for macOS, so without
+# them `pip install autoclip[gpu]` fails to resolve on a Mac — which is exactly
+# what doctor tells you to run when it can't see your GPU. On macOS the extra
+# now installs nothing, which is correct: there is no CUDA there, and Apple
+# Silicon takes the CPU path anyway.
 gpu = [
-  "nvidia-cublas-cu12>=12.4",
-  "nvidia-cudnn-cu12>=9.1",
+  "nvidia-cublas-cu12>=12.4; platform_system != 'Darwin'",
+  "nvidia-cudnn-cu12>=9.1; platform_system != 'Darwin'",
 ]
 dev = [
   "pytest>=8.3",
